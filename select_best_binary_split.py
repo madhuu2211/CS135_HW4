@@ -118,10 +118,31 @@ def select_best_binary_split(x_NF, y_N, MIN_SAMPLES_LEAF=1):
         # Your goal is *correctness*, don't prioritize speed or efficiency yet.
         # Hint: You may need several lines of code, maybe a for loop.
         # Hint 2: look below at how we assemble the left and right child 
-        left_yhat_V = np.zeros(V) # TODO fixme
-        right_yhat_V = np.ones(V) # TODO fixme
-        left_cost_V = np.zeros(V) # TODO fixme
-        right_cost_V = np.ones(V) # TODO fixme
+        left_yhat_V = np.zeros(V)  
+        right_yhat_V = np.zeros(V)  
+        left_cost_V = np.zeros(V)   
+        right_cost_V = np.zeros(V)  
+
+       # Loop through each possible threshold value
+        for v_id in range(V):
+            # Mask for samples less than the threshold
+            left_mask_V = x_NF[:, f] < possib_xthresh_V[v_id]
+            # Mask for samples greater than or equal to the threshold
+            right_mask_V = ~left_mask_V
+
+            # Compute mean of y values for the left child
+            left_yhat_V[v_id] = np.mean(y_N[left_mask_V])
+
+            # Compute mean of y values for the right child
+            right_yhat_V[v_id] = np.mean(y_N[right_mask_V])
+
+            # Compute cost for the left child
+            left_cost_V[v_id] = np.sum((y_N[left_mask_V] - left_yhat_V[v_id]) ** 2)
+
+            # Compute cost for the right child
+            right_cost_V[v_id] = np.sum((y_N[right_mask_V] - right_yhat_V[v_id]) ** 2)
+
+        # Compute total cost at each possible threshold
         total_cost_V = left_cost_V + right_cost_V
 
         # Check if there is any split that improves our cost or predictions.
@@ -129,17 +150,17 @@ def select_best_binary_split(x_NF, y_N, MIN_SAMPLES_LEAF=1):
         costs_all_the_same = np.allclose(total_cost_V, total_cost_V[0])
         yhat_all_the_same = np.allclose(left_yhat_V, right_yhat_V)
         if costs_all_the_same and yhat_all_the_same:
-            # Keep cost as "infinite" and continue to next feature
+            # Keep cost as "infinite" and continue to the next feature
             cost_F[f] = np.inf
             continue
         
         # TODO pick out the split candidate that has best cost
-        chosen_v_id = -1 # TODO fixme
+        chosen_v_id = np.argmin(total_cost_V)
         cost_F[f] = total_cost_V[chosen_v_id]
         thresh_val_F[f] = possib_xthresh_V[chosen_v_id]
 
     # Determine single best feature to use
-    best_feat_id = np.argmin(cost_F)
+    best_feat_id = int(np.argmin(cost_F))
     best_thresh_val = thresh_val_F[best_feat_id]
     
     if not np.isfinite(cost_F[best_feat_id]):
@@ -153,9 +174,9 @@ def select_best_binary_split(x_NF, y_N, MIN_SAMPLES_LEAF=1):
     x_LF, y_L = x_NF[left_mask_N], y_N[left_mask_N]
     x_RF, y_R = x_NF[right_mask_N], y_N[right_mask_N]
 
-    # TODO uncomment below to verify your cost computation
-    # left_cost = np.sum(np.square(y_L - np.mean(y_L)))
-    # right_cost = np.sum(np.square(y_R - np.mean(y_R)))
-    # assert np.allclose(cost_F[best_feat_id], left_cost + right_cost)
+    # uncomment below to verify your cost computation
+    left_cost = np.sum(np.square(y_L - np.mean(y_L)))
+    right_cost = np.sum(np.square(y_R - np.mean(y_R)))
+    assert np.allclose(cost_F[best_feat_id], left_cost + right_cost)
 
     return (best_feat_id, best_thresh_val, x_LF, y_L, x_RF, y_R)
